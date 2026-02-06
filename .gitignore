@@ -33,5 +33,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# prisma
-/prisma/migrations
+# prisma (keep migrations for Docker)
+# /prisma/migrations
+
+# Deployment
+VPS_CREDENTIALS.md
+DEPLOYMENT.md
+deployment-results-summary.md
+deploy.sh
