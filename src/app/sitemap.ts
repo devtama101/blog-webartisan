@@ -27,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let dynamicPages: MetadataRoute.Sitemap = []
 
   // Skip database queries during build or if no database URL
-  const shouldSkipDb = !process.env.DATABASE_URL || process.env.NODE_ENV === 'undefined' || process.env.CI === 'true'
+  const shouldSkipDb = !process.env.DATABASE_URL || process.env.CI === 'true'
 
   if (!shouldSkipDb) {
     try {
