@@ -1,0 +1,325 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============= PROJECTS =============
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  nameId      String?
+  logo        String
+  year        Int?
+  type        ProjectType @default(WORK)
+  description String
+  descriptionId String?
+  url         String?
+  github      String?
+  image       String?
+  order       Int      @default(0)
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Deployment config
+  deployType  DeployType?
+  deployName  String?  // Container name or PM2 name
+  deployPath  String?  // Path for git pull
+  healthUrl   String?  // URL for health check
+
+  deployments Deployment[]
+  healthChecks HealthCheck[]
+  stats       ProjectStats[]
+  technologies Technology[]
+
+  @@index([type, order])
+}
+
+model Technology {
+  id        String   @id @default(cuid())
+  name      String
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+enum ProjectType {
+  WORK
+  EXPLORATION
+}
+
+enum DeployType {
+  DOCKER
+  PM2
+  NONE
+}
+
+// ============= DEPLOYMENTS =============
+
+model Deployment {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status      DeploymentStatus @default(PENDING)
+  commitHash  String?
+  commitMsg   String?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  logs        String?
+  error       String?
+
+  @@index([projectId])
+}
+
+enum DeploymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// ============= HEALTH =============
+
+model HealthCheck {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status      HealthStatus @default(UNKNOWN)
+  responseTime Int?
+  cpuUsage    Float?
+  memoryUsage Float?
+  diskUsage   Float?
+  checkedAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+enum HealthStatus {
+  UP
+  DOWN
+  DEGRADED
+  UNKNOWN
+}
+
+// ============= ANALYTICS =============
+
+model ProjectStats {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  views       Int      @default(0)
+  visitors    Int      @default(0)
+
+  @@unique([projectId, date])
+  @@index([projectId, date])
+}
+
+// ============= BLOG =============
+
+model Post {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String?
+  content     String   @db.Text
+  coverImage  String?
+  coverImageSource String? // 'unsplash', 'falai', 'upload', 'template'
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // SEO
+  metaTitle   String?
+  metaDescription String?
+  ogImage     String?
+  canonicalUrl String?
+
+  // Reading time (calculated)
+  readingTime Int      @default(0)
+
+  // AI-generated suggestions (cached)
+  seoScore      Int?
+  suggestedTags String[]
+  readabilityScore Float?
+
+  categories Category[]
+  tags       Tag[]
+  stats      PostStats[]
+  comments   Comment[]
+
+  @@index([status, publishedAt])
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  posts     Post[]
+
+  @@index([slug])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  posts     Post[]
+
+  @@index([slug])
+}
+
+model PostStats {
+  id          String   @id @default(cuid())
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  views       Int      @default(0)
+  visitors    Int      @default(0)
+  bounceRate Float?
+  avgTimeOnPage Int?
+
+  @@unique([postId, date])
+  @@index([postId, date])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorName  String
+  authorEmail String
+  content     String   @db.Text
+  status      CommentStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  @@index([postId])
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  SPAM
+}
+
+// ============= USERS =============
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  posts         Post[]
+  aiUsageLogs   AiUsageLog[]
+  activityLogs  ActivityLog[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============= MEDIA =============
+
+model Media {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  alt          String?
+  width        Int?
+  height       Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ============= AI USAGE TRACKING =============
+
+model AiUsageLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  endpoint    String   // 'continue', 'fix-grammar', 'rewrite', 'seo'
+  inputTokens Int?
+  outputTokens Int?
+  totalTokens Int?
+  model       String?  // e.g., 'llama-3.3-70b-versatile'
+  cost        Float?   // calculated cost if available
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ============= ACTIVITY LOG =============
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String   // 'post_created', 'post_updated', 'post_archived', etc.
+  entity    String   // 'post', 'comment', 'media', etc.
+  entityId  String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
