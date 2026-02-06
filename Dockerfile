@@ -27,11 +27,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build arguments for environment variables at build time
-ARG DATABASE_URL
-ARG GROQ_API_KEY
-ARG NEXT_PUBLIC_BASE_URL
-
 # Generate Prisma client and build Next.js
 RUN corepack enable pnpm && \
     pnpm db:generate && \

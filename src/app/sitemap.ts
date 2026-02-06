@@ -6,35 +6,7 @@ const POSTS_PER_PAGE = 6
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://example.com'
 
-  // Fetch all published posts
-  const posts = await db.post.findMany({
-    where: { status: 'PUBLISHED' },
-    select: {
-      slug: true,
-      updatedAt: true,
-      publishedAt: true,
-    },
-    orderBy: { publishedAt: 'desc' },
-  })
-
-  // Fetch all categories
-  const categories = await db.category.findMany({
-    select: {
-      slug: true,
-    },
-  })
-
-  // Fetch all tags
-  const tags = await db.tag.findMany({
-    select: {
-      slug: true,
-    },
-  })
-
-  // Calculate total pages for pagination
-  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE)
-
-  // Static pages
+  // Static pages (always included)
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
@@ -50,40 +22,84 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]
 
-  // Paginated pages (page 2 and beyond, since page 1 is the homepage)
-  const paginatedPages: MetadataRoute.Sitemap = []
-  for (let page = 2; page <= totalPages; page++) {
-    paginatedPages.push({
-      url: `${baseUrl}/page/${page}`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-    })
+  // Try to fetch dynamic content from database
+  // Skip during build time if database is not available
+  let dynamicPages: MetadataRoute.Sitemap = []
+
+  // Skip database queries during build or if no database URL
+  const shouldSkipDb = !process.env.DATABASE_URL || process.env.NODE_ENV === 'undefined' || process.env.CI === 'true'
+
+  if (!shouldSkipDb) {
+    try {
+      // Fetch all published posts
+      const posts = await db.post.findMany({
+        where: { status: 'PUBLISHED' },
+        select: {
+          slug: true,
+          updatedAt: true,
+          publishedAt: true,
+        },
+        orderBy: { publishedAt: 'desc' },
+      })
+
+      // Fetch all categories
+      const categories = await db.category.findMany({
+        select: {
+          slug: true,
+        },
+      })
+
+      // Fetch all tags
+      const tags = await db.tag.findMany({
+        select: {
+          slug: true,
+        },
+      })
+
+      // Calculate total pages for pagination
+      const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE)
+
+      // Paginated pages (page 2 and beyond, since page 1 is the homepage)
+      const paginatedPages: MetadataRoute.Sitemap = []
+      for (let page = 2; page <= totalPages; page++) {
+        paginatedPages.push({
+          url: `${baseUrl}/page/${page}`,
+          lastModified: new Date(),
+          changeFrequency: 'daily' as const,
+          priority: 0.9,
+        })
+      }
+
+      // Blog posts
+      const postsSitemap: MetadataRoute.Sitemap = posts.map((post) => ({
+        url: `${baseUrl}/${post.slug}`,
+        lastModified: post.publishedAt || post.updatedAt,
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      }))
+
+      // Category pages
+      const categoriesSitemap: MetadataRoute.Sitemap = categories.map((category) => ({
+        url: `${baseUrl}/category/${category.slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      }))
+
+      // Tag pages
+      const tagsSitemap: MetadataRoute.Sitemap = tags.map((tag) => ({
+        url: `${baseUrl}/tag/${tag.slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.5,
+      }))
+
+      dynamicPages = [...paginatedPages, ...postsSitemap, ...categoriesSitemap, ...tagsSitemap]
+    } catch {
+      // Database not available during build, return static pages only
+      dynamicPages = []
+    }
   }
 
-  // Blog posts
-  const postsSitemap: MetadataRoute.Sitemap = posts.map((post) => ({
-    url: `${baseUrl}/${post.slug}`,
-    lastModified: post.publishedAt || post.updatedAt,
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }))
-
-  // Category pages
-  const categoriesSitemap: MetadataRoute.Sitemap = categories.map((category) => ({
-    url: `${baseUrl}/category/${category.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.6,
-  }))
-
-  // Tag pages
-  const tagsSitemap: MetadataRoute.Sitemap = tags.map((tag) => ({
-    url: `${baseUrl}/tag/${tag.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.5,
-  }))
-
-  return [...staticPages, ...paginatedPages, ...postsSitemap, ...categoriesSitemap, ...tagsSitemap]
+  return [...staticPages, ...dynamicPages]
 }
