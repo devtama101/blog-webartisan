@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['@prisma/config'],
+  // serverExternalPackages removed - causing Prisma client issues
 };
 
 export default nextConfig;
