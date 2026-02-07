@@ -33,11 +33,19 @@ export default function BlogHomePage() {
   useEffect(() => {
     fetch("/api/b/posts?page=1")
       .then((res) => res.json())
-      .then((result: PaginatedPostsResponse) => {
-        setData(result);
+      .then((result: PaginatedPostsResponse | { error: string }) => {
+        // Handle error response from API
+        if ("error" in result) {
+          setData({ posts: [], pagination: { total: 0, page: 1, limit: 6, totalPages: 0, hasNext: false, hasPrev: false } });
+        } else {
+          setData(result);
+        }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setData({ posts: [], pagination: { total: 0, page: 1, limit: 6, totalPages: 0, hasNext: false, hasPrev: false } });
+        setLoading(false);
+      });
   }, []);
 
   const calculateReadingTime = (content: string, wordCount = 200) => {

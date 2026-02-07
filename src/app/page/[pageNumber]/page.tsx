@@ -50,14 +50,12 @@ export default function PaginatedPage({ params }: PageProps) {
       setPageNumber(pageNum);
 
       fetch(`/api/b/posts?page=${pageNum}`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error("Failed to fetch");
-          }
-          return res.json();
-        })
-        .then((result: PaginatedPostsResponse) => {
-          if (result.posts.length === 0 && pageNum > 1) {
+        .then((res) => res.json())
+        .then((result: PaginatedPostsResponse | { error: string }) => {
+          // Handle error response from API
+          if ("error" in result) {
+            setData({ posts: [], pagination: { total: 0, page: pageNum, limit: 6, totalPages: 0, hasNext: false, hasPrev: false } });
+          } else if (result.posts.length === 0 && pageNum > 1) {
             setNotFoundState(true);
           } else {
             setData(result);
@@ -65,7 +63,7 @@ export default function PaginatedPage({ params }: PageProps) {
           setLoading(false);
         })
         .catch(() => {
-          setNotFoundState(true);
+          setData({ posts: [], pagination: { total: 0, page: pageNum, limit: 6, totalPages: 0, hasNext: false, hasPrev: false } });
           setLoading(false);
         });
     });
@@ -102,9 +100,30 @@ export default function PaginatedPage({ params }: PageProps) {
     );
   }
 
-  if (notFoundState || !data) {
+  if (notFoundState) {
     notFound();
     return null;
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen">
+        <header className="border-b">
+          <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+            <Link href="/" className="text-2xl font-bold">WebArtisan Blog</Link>
+            <nav className="flex gap-6">
+              <Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link>
+              <Link href="/admin" className="text-primary hover:text-primary">Admin</Link>
+            </nav>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-12 max-w-4xl">
+          <div className="border rounded-lg p-12 text-center">
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const { posts, pagination } = data;
