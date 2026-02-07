@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pagination } from "@/components/blog/pagination";
 import { Metadata } from "next";
+import { getAvatarUrl } from "@/lib/avatar";
 
 interface Post {
   slug: string;
@@ -14,6 +15,11 @@ interface Post {
   publishedAt: string | null;
   readingTime: number | null;
   content: string;
+  author: {
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  } | null;
 }
 
 interface PaginatedPostsResponse {
@@ -175,7 +181,21 @@ export default function PaginatedPage({ params }: PageProps) {
                   <p className="text-muted-foreground mb-4">
                     {post.excerpt || post.content?.substring(0, 150) + "..."}
                   </p>
-                  <div className="flex gap-2 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                    {/* Author */}
+                    {post.author && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={getAvatarUrl(post.author.name, post.author.image)}
+                            alt={post.author.name || "Author"}
+                            className="w-5 h-5 rounded-full"
+                          />
+                          <span className="font-medium text-foreground">{post.author.name || "Anonymous"}</span>
+                        </div>
+                        <span>•</span>
+                      </>
+                    )}
                     {post.publishedAt && (
                       <span>
                         {new Date(post.publishedAt).toLocaleDateString("en-US", {

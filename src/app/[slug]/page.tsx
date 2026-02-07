@@ -13,6 +13,7 @@ import { JsonLd } from "@/components/blog/json-ld";
 import { RelatedPosts } from "@/components/blog/related-posts";
 import { generateArticleSchema, generateBreadcrumbSchema, generateWebsiteSchema } from "@/lib/schema-generator";
 import { generateToc } from "@/lib/toc-generator";
+import { getAvatarUrl } from "@/lib/avatar";
 
 type Post = {
   slug: string;
@@ -29,6 +30,7 @@ type Post = {
   author?: {
     name: string | null;
     email: string | null;
+    image: string | null;
   } | null;
 };
 
@@ -130,6 +132,20 @@ export default function BlogPostPage() {
 
               {/* Meta */}
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-8 pb-8 border-b border-border">
+                {/* Author */}
+                {post.author && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={getAvatarUrl(post.author.name, post.author.image)}
+                        alt={post.author.name || "Author"}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <span className="font-medium text-foreground">{post.author.name || "Anonymous"}</span>
+                    </div>
+                    <span>•</span>
+                  </>
+                )}
                 {displayDate && (
                   <time>{new Date(displayDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</time>
                 )}

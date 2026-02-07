@@ -51,6 +51,7 @@ A comprehensive content platform built with Next.js 16 (App Router), Prisma ORM,
 
 | Document | Description |
 |----------|-------------|
+| [Automatic Features](./docs/AUTOMATIC-FEATURES.md) | Complete guide to all automatic features (SEO, related posts, TOC, AI, etc.) |
 | [SEO Features](./docs/SEO-FEATURES.md) | Comprehensive guide to SEO features, configuration, and best practices |
 | [CLAUDE.md](./CLAUDE.md) | Developer guide for Claude Code (architecture, commands, patterns) |
 

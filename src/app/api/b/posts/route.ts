@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
         author: {
           select: {
             name: true,
-            email: true
+            email: true,
+            image: true
           }
         }
       }

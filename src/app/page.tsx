@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Pagination } from "@/components/blog/pagination";
+import { UserMenu } from "@/components/auth/user-menu";
+import { SignInButton } from "@/components/auth/sign-in-button";
+import { getAvatarUrl } from "@/lib/avatar";
 
 type Post = {
   slug: string;
@@ -12,6 +16,11 @@ type Post = {
   publishedAt: string | null;
   readingTime: number | null;
   content: string;
+  author: {
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  } | null;
 };
 
 interface PaginatedPostsResponse {
@@ -27,6 +36,7 @@ interface PaginatedPostsResponse {
 }
 
 export default function BlogHomePage() {
+  const { data: session, status } = useSession();
   const [data, setData] = useState<PaginatedPostsResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,13 +75,22 @@ export default function BlogHomePage() {
           <Link href="/" className="text-2xl font-bold">
             WebArtisan Blog
           </Link>
-          <nav className="flex gap-6">
-            <Link href="/" className="text-muted-foreground hover:text-foreground">
+          <nav className="flex items-center gap-6">
+            <Link href="/" className="text-muted-foreground hover:text-foreground hidden sm:block">
               Home
             </Link>
-            <Link href="/admin" className="text-primary hover:text-primary">
-              Admin
-            </Link>
+            {session?.user?.role === "ADMIN" && (
+              <Link href="/admin" className="text-primary hover:text-primary">
+                Admin
+              </Link>
+            )}
+            {status === "loading" ? (
+              <div className="w-20 h-8 bg-muted animate-pulse rounded" />
+            ) : session?.user ? (
+              <UserMenu variant="blog" />
+            ) : (
+              <SignInButton variant="default" />
+            )}
           </nav>
         </div>
       </header>
@@ -105,7 +124,21 @@ export default function BlogHomePage() {
                   <p className="text-muted-foreground mb-4">
                     {post.excerpt || post.content?.substring(0, 150) + '...'}
                   </p>
-                  <div className="flex gap-2 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                    {/* Author */}
+                    {post.author && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={getAvatarUrl(post.author.name, post.author.image)}
+                            alt={post.author.name || "Author"}
+                            className="w-5 h-5 rounded-full"
+                          />
+                          <span className="font-medium text-foreground">{post.author.name || "Anonymous"}</span>
+                        </div>
+                        <span>•</span>
+                      </>
+                    )}
                     {post.publishedAt && (
                       <span>{new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     )}
