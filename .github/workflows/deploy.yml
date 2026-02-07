@@ -23,21 +23,25 @@ jobs:
           version: 9
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Build project
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Build Next.js
         run: pnpm build
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Create deployment package
         run: |
-          tar -czf deploy.tar.gz \
+          tar -czf ../deploy.tar.gz \
             --exclude=node_modules \
-            --exclude=.next \
             --exclude=.git \
-            --exclude=*.log \
             .
+          mv ../deploy.tar.gz .
 
       - name: Copy files to VPS
         uses: appleboy/scp-action@v0.1.7
@@ -70,22 +74,15 @@ jobs:
             sudo mkdir -p $VPS_PATH
 
             echo ""
-            echo "=== Extracting files ==="
-            sudo rm -rf $VPS_PATH/.next
+            echo "=== Backing up and extracting files ==="
+            cd $VPS_PATH
+            sudo tar -czf /tmp/backup-$(date +%Y%m%d-%H%M%S).tar.gz . || true
             sudo tar -xzf /tmp/deploy.tar.gz -C $VPS_PATH
 
             echo ""
             echo "=== Installing dependencies ==="
             cd $VPS_PATH
             sudo pnpm install
-
-            echo ""
-            echo "=== Generating Prisma client ==="
-            sudo pnpm prisma generate
-
-            echo ""
-            echo "=== Running migrations ==="
-            sudo pnpm prisma migrate deploy
 
             echo ""
             echo "=== Restarting PM2 ==="
