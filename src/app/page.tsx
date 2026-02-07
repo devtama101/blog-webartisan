@@ -21,6 +21,14 @@ type Post = {
     email: string | null;
     image: string | null;
   } | null;
+  tags: {
+    name: string;
+    slug: string;
+  }[];
+  categories: {
+    name: string;
+    slug: string;
+  }[];
 };
 
 interface PaginatedPostsResponse {
@@ -44,7 +52,6 @@ export default function BlogHomePage() {
     fetch("/api/b/posts?page=1")
       .then((res) => res.json())
       .then((result: PaginatedPostsResponse | { error: string }) => {
-        // Handle error response from API
         if ("error" in result) {
           setData({ posts: [], pagination: { total: 0, page: 1, limit: 6, totalPages: 0, hasNext: false, hasPrev: false } });
         } else {
@@ -58,34 +65,39 @@ export default function BlogHomePage() {
       });
   }, []);
 
-  const calculateReadingTime = (content: string, wordCount = 200) => {
-    return Math.max(1, Math.ceil(content.split(/\s+/).length / wordCount));
+  const getCategoryLabel = (post: Post) => {
+    if (post.categories.length > 0) {
+      return post.categories[0].name;
+    }
+    if (post.tags.length > 0) {
+      return post.tags[0].name;
+    }
+    return null;
   };
 
   return (
-    <div className="min-h-screen">
-      {/* SEO Links for pagination */}
+    <div className="min-h-screen bg-white">
       {data && data.pagination.hasNext && (
         <link rel="next" href="/page/2" />
       )}
 
       {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold">
+      <header className="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-sm z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <Link href="/" className="text-xl font-semibold text-gray-900">
             WebArtisan Blog
           </Link>
           <nav className="flex items-center gap-6">
-            <Link href="/" className="text-muted-foreground hover:text-foreground hidden sm:block">
+            <Link href="/" className="text-gray-600 hover:text-gray-900 hidden sm:block text-sm">
               Home
             </Link>
             {session?.user?.role === "ADMIN" && (
-              <Link href="/admin" className="text-primary hover:text-primary">
+              <Link href="/admin" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                 Admin
               </Link>
             )}
             {status === "loading" ? (
-              <div className="w-20 h-8 bg-muted animate-pulse rounded" />
+              <div className="w-16 h-8 bg-gray-100 animate-pulse rounded" />
             ) : session?.user ? (
               <UserMenu variant="blog" />
             ) : (
@@ -96,68 +108,113 @@ export default function BlogHomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 max-w-4xl">
-        <h1 className="text-4xl font-bold mb-8">Latest Posts</h1>
+      <main className="max-w-7xl mx-auto px-6 py-16">
+        {/* Hero Section */}
+        <div className="mb-16">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
+            Tools & Craft
+          </h1>
+          <p className="text-lg text-gray-600">
+            Thoughts on development, design, and the future of the web.
+          </p>
+        </div>
 
+        {/* Loading State */}
         {loading ? (
-          <div className="border rounded-lg p-12 text-center">
-            <p className="text-muted-foreground">Loading...</p>
+          <div className="text-center py-20">
+            <p className="text-gray-500">Loading...</p>
           </div>
         ) : !data || data.posts.length === 0 ? (
-          <div className="border rounded-lg p-12 text-center">
-            <p className="text-muted-foreground">No posts published yet.</p>
+          <div className="text-center py-20">
+            <p className="text-gray-500">No posts published yet.</p>
           </div>
         ) : (
           <>
-            <div className="space-y-8">
-              {data.posts.map((post: Post) => (
-                <article key={post.slug} className="border rounded-lg p-6 hover:shadow-lg transition-shadow">
-                  {post.coverImage && (
-                    <div
-                      className="aspect-video bg-muted rounded-lg mb-4 bg-cover bg-center"
-                      style={{ backgroundImage: `url(${post.coverImage})` }}
-                    />
-                  )}
-                  <h2 className="text-2xl font-bold mb-2 hover:text-primary cursor-pointer">
-                    <Link href={`/${post.slug}`}>{post.title}</Link>
-                  </h2>
-                  <p className="text-muted-foreground mb-4">
-                    {post.excerpt || post.content?.substring(0, 150) + '...'}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                    {/* Author */}
-                    {post.author && (
-                      <>
-                        <div className="flex items-center gap-2">
+            {/* Posts Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12 mb-16">
+              {data.posts.map((post: Post) => {
+                const categoryLabel = getCategoryLabel(post);
+                return (
+                  <article
+                    key={post.slug}
+                    className="group flex flex-col"
+                  >
+                    {/* Cover Image */}
+                    <Link href={`/${post.slug}`} className="block mb-4">
+                      {post.coverImage ? (
+                        <div
+                          className="aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden bg-cover bg-center"
+                          style={{ backgroundImage: `url(${post.coverImage})` }}
+                        />
+                      ) : (
+                        <div className="aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
+                          <span className="text-4xl font-bold text-gray-300">
+                            {post.title.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                    </Link>
+
+                    {/* Category Label */}
+                    {categoryLabel && (
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                        {categoryLabel}
+                      </span>
+                    )}
+
+                    {/* Title */}
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2 leading-snug">
+                      <Link
+                        href={`/${post.slug}`}
+                        className="hover:text-blue-600 transition-colors"
+                      >
+                        {post.title}
+                      </Link>
+                    </h3>
+
+                    {/* Excerpt */}
+                    {post.excerpt && (
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">
+                        {post.excerpt}
+                      </p>
+                    )}
+
+                    {/* Author Info */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100 mt-auto">
+                      {post.author && (
+                        <>
                           <img
                             src={getAvatarUrl(post.author.name, post.author.image)}
                             alt={post.author.name || "Author"}
-                            className="w-5 h-5 rounded-full"
+                            className="w-6 h-6 rounded-full"
                           />
-                          <span className="font-medium text-foreground">{post.author.name || "Anonymous"}</span>
-                        </div>
-                        <span>•</span>
-                      </>
-                    )}
-                    {post.publishedAt && (
-                      <span>{new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    )}
-                    {post.publishedAt && <span>•</span>}
-                    <span>{post.readingTime || (post.content && calculateReadingTime(post.content))} min read</span>
-                  </div>
-                </article>
-              ))}
+                          <span className="text-sm text-gray-700">
+                            {post.author.name || "Anonymous"}
+                          </span>
+                        </>
+                      )}
+                      <span className="text-sm text-gray-400">•</span>
+                      <span className="text-sm text-gray-500">
+                        {post.readingTime || 1} min read
+                      </span>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
 
+            {/* Pagination */}
             <Pagination currentPage={1} totalPages={data.pagination.totalPages} />
           </>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t mt-12">
-        <div className="container mx-auto px-4 py-6 text-center text-muted-foreground">
-          <p>© {new Date().getFullYear()} WebArtisan. All rights reserved.</p>
+      <footer className="border-t border-gray-200 mt-12">
+        <div className="max-w-7xl mx-auto px-6 py-8 text-center">
+          <p className="text-sm text-gray-500">
+            © {new Date().getFullYear()} WebArtisan. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>

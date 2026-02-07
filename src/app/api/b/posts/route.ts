@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Calculate pagination
     const skip = (page - 1) * limit
 
-    // Fetch posts
+    // Fetch posts with tags and categories
     const posts = await prisma.post.findMany({
       where: {
         status: 'PUBLISHED'
@@ -52,6 +52,18 @@ export async function GET(request: NextRequest) {
             name: true,
             email: true,
             image: true
+          }
+        },
+        tags: {
+          select: {
+            name: true,
+            slug: true
+          }
+        },
+        categories: {
+          select: {
+            name: true,
+            slug: true
           }
         }
       }
