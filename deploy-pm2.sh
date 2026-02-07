@@ -7,7 +7,7 @@ set -e
 # VPS Configuration
 VPS_HOST="103.189.234.117"
 VPS_USER="tamatopik"
-VPS_PATH="~/blog-webartisan"
+VPS_PATH="/home/tamatopik/blog-webartisan"
 PM2_NAME="blog-webartisan"
 
 echo "=========================================="
