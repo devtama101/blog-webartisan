@@ -3,7 +3,8 @@ import { authConfig } from "@/app/api/auth/[...nextauth]/options"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true
 })
 
 // Helper to get session server-side
