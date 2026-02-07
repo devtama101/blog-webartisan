@@ -66,27 +66,34 @@ jobs:
             echo "Starting deployment to VPS"
             echo "=========================================="
 
-            VPS_PATH="/var/www/blog-webartisan"
+            VPS_PATH="~/blog-webartisan"
             PM2_NAME="blog-webartisan"
 
             echo ""
-            echo "=== Creating directory if not exists ==="
-            sudo mkdir -p $VPS_PATH
+            echo "=== Stopping old PM2 process ==="
+            pm2 stop $PM2_NAME || true
+            pm2 delete $PM2_NAME || true
 
             echo ""
-            echo "=== Backing up and extracting files ==="
-            cd $VPS_PATH
-            sudo tar -czf /tmp/backup-$(date +%Y%m%d-%H%M%S).tar.gz . || true
-            sudo tar -xzf /tmp/deploy.tar.gz -C $VPS_PATH
+            echo "=== Extracting files ==="
+            tar -xzf /tmp/deploy.tar.gz -C $VPS_PATH
 
             echo ""
             echo "=== Installing dependencies ==="
             cd $VPS_PATH
-            sudo pnpm install
+            pnpm install
 
             echo ""
-            echo "=== Restarting PM2 ==="
-            sudo pm2 restart $PM2_NAME || sudo pm2 start npm --name "$PM2_NAME" -- start
+            echo "=== Generating Prisma client ==="
+            pnpm prisma generate
+
+            echo ""
+            echo "=== Starting PM2 ==="
+            pm2 start npm --name "$PM2_NAME" -- start
+
+            echo ""
+            echo "=== Saving PM2 config ==="
+            pm2 save
 
             echo ""
             echo "=== Cleanup ==="
@@ -94,7 +101,7 @@ jobs:
 
             echo ""
             echo "=== PM2 Status ==="
-            sudo pm2 status $PM2_NAME
+            pm2 status $PM2_NAME
 
             echo ""
             echo "=========================================="

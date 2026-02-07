@@ -5,9 +5,10 @@
 set -e
 
 # VPS Configuration
-VPS_HOST="${VPS_HOST:-your-vps-host}"
-VPS_USER="${VPS_USER:-root}"
-VPS_PATH="${VPS_PATH:-/var/www/blog-webartisan}"
+VPS_HOST="103.189.234.117"
+VPS_USER="tamatopik"
+VPS_PATH="~/blog-webartisan"
+PM2_NAME="blog-webartisan"
 
 echo "=========================================="
 echo "Deploying to VPS via SSH"
@@ -38,39 +39,37 @@ scp /tmp/blog-webartisan-deploy.tar.gz $VPS_USER@$VPS_HOST:/tmp/
 # Deploy on VPS
 echo ""
 echo "=== Extracting and restarting on VPS ==="
-ssh $VPS_USER@$VPS_HOST << 'ENDSSH'
+ssh $VPS_USER@$VPS_HOST << ENDSSH
 set -e
 
-VPS_PATH="/var/www/blog-webartisan"
-PM2_NAME="blog-webartisan"
+VPS_PATH="$VPS_PATH"
+PM2_NAME="$PM2_NAME"
 
-echo "Creating directory if not exists..."
-sudo mkdir -p $VPS_PATH
+echo "Stopping old PM2 process..."
+pm2 stop \$PM2_NAME || true
+pm2 delete \$PM2_NAME || true
 
 echo "Extracting files..."
-sudo tar -xzf /tmp/blog-webartisan-deploy.tar.gz -C $VPS_PATH
+tar -xzf /tmp/blog-webartisan-deploy.tar.gz -C \$VPS_PATH
 
 echo "Installing dependencies..."
-cd $VPS_PATH
-sudo pnpm install --prod=false
+cd \$VPS_PATH
+pnpm install
 
 echo "Generating Prisma client..."
-sudo pnpm prisma generate
-
-echo "Building Next.js..."
-sudo pnpm build
-
-echo "Installing production dependencies..."
-sudo pnpm install --prod
+pnpm prisma generate
 
 echo "Restarting PM2..."
-sudo pm2 restart $PM2_NAME || sudo pm2 start npm --name "$PM2_NAME" -- start
+pm2 start npm --name "\$PM2_NAME" -- start
+
+echo "Saving PM2 config..."
+pm2 save
 
 echo "Cleanup..."
 rm -f /tmp/blog-webartisan-deploy.tar.gz
 
 echo "=== Deployment complete! ==="
-pm2 status $PM2_NAME
+pm2 status \$PM2_NAME
 ENDSSH
 
 # Cleanup local
