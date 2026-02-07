@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import bcrypt from 'bcryptjs'
 
 // Create fresh Prisma client for seeding
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres@localhost:5432/webartisan_platform'
@@ -42,12 +43,22 @@ async function main() {
   const admin = await prisma.user.findFirst({ where: { email: 'admin@example.com' } })
   if (!admin) {
     console.log('No admin user found. Creating...')
+    const hashedPassword = await bcrypt.hash('admin123', 10)
     await prisma.user.create({
       data: {
         email: 'admin@example.com',
         name: 'Admin',
+        password: hashedPassword,
         role: 'ADMIN',
       },
+    })
+  } else if (!admin.password) {
+    // Update existing admin user with password if none exists
+    console.log('Admin user found but no password. Setting password...')
+    const hashedPassword = await bcrypt.hash('admin123', 10)
+    await prisma.user.update({
+      where: { id: admin.id },
+      data: { password: hashedPassword }
     })
   }
 

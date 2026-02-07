@@ -1,7 +1,8 @@
 'use client'
 
-import { Menu, User } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { UserMenu } from '@/components/auth/user-menu'
 
 interface TopbarProps {
   onMenuClick?: () => void
@@ -45,10 +46,8 @@ export function Topbar({ onMenuClick, breadcrumbs, title }: TopbarProps) {
         {title && <h1 className="md:hidden text-lg font-semibold text-gray-900">{title}</h1>}
       </div>
 
-      {/* Right side - User */}
-      <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-        <User className="h-5 w-5" />
-      </Button>
+      {/* Right side - User Menu */}
+      <UserMenu variant="admin" />
     </header>
   )
 }

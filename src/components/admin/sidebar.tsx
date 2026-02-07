@@ -13,6 +13,7 @@ import {
   Tag,
   X,
   Cpu,
+  Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: '/admin/ai-usage', label: 'AI Usage', icon: Cpu },
   { href: '/admin/categories', label: 'Categories', icon: Folder },
   { href: '/admin/tags', label: 'Tags', icon: Tag },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
 export function Sidebar({ onClose }: SidebarProps) {
