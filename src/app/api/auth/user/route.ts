@@ -85,7 +85,13 @@ export async function PUT(req: Request) {
     }
   })
 
-  console.log('[SETTINGS UPDATE] Saved user:', { id: updatedUser.id, name: updatedUser.name, hasImage: !!updatedUser.image })
+  console.log('[SETTINGS UPDATE] Saved user:', {
+    id: updatedUser.id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    hasImage: !!updatedUser.image,
+    updateDataKeys: Object.keys(updateData)
+  })
 
-  return NextResponse.json({ user: updatedUser })
+  return NextResponse.json({ success: true, user: updatedUser })
 }

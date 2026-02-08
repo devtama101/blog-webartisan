@@ -43,12 +43,24 @@ interface PaginatedPostsResponse {
   };
 }
 
+interface SiteSettings {
+  blogName: string;
+  blogTitle: string;
+  blogDescription: string;
+}
+
 export default function BlogHomePage() {
   const { data: session, status } = useSession();
   const [data, setData] = useState<PaginatedPostsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<SiteSettings>({
+    blogName: "WebArtisan Blog",
+    blogTitle: "Tools & Craft",
+    blogDescription: "Thoughts on development, design, and the future of the web."
+  });
 
   useEffect(() => {
+    // Fetch posts
     fetch("/api/b/posts?page=1")
       .then((res) => res.json())
       .then((result: PaginatedPostsResponse | { error: string }) => {
@@ -62,6 +74,16 @@ export default function BlogHomePage() {
       .catch(() => {
         setData({ posts: [], pagination: { total: 0, page: 1, limit: 6, totalPages: 0, hasNext: false, hasPrev: false } });
         setLoading(false);
+      });
+
+    // Fetch site settings
+    fetch("/api/b/settings")
+      .then((res) => res.json())
+      .then((data: SiteSettings) => {
+        setSettings(data);
+      })
+      .catch(() => {
+        // Keep defaults on error
       });
   }, []);
 
@@ -85,17 +107,12 @@ export default function BlogHomePage() {
       <header className="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-sm z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="text-xl font-semibold text-gray-900">
-            WebArtisan Blog
+            {settings.blogName}
           </Link>
           <nav className="flex items-center gap-6">
             <Link href="/" className="text-gray-600 hover:text-gray-900 hidden sm:block text-sm">
               Home
             </Link>
-            {session?.user?.role === "ADMIN" && (
-              <Link href="/admin" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                Admin
-              </Link>
-            )}
             {status === "loading" ? (
               <div className="w-16 h-8 bg-gray-100 animate-pulse rounded" />
             ) : session?.user ? (
@@ -112,10 +129,10 @@ export default function BlogHomePage() {
         {/* Hero Section */}
         <div className="mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
-            Tools & Craft
+            {settings.blogTitle}
           </h1>
           <p className="text-lg text-gray-600">
-            Thoughts on development, design, and the future of the web.
+            {settings.blogDescription}
           </p>
         </div>
 

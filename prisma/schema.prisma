@@ -309,6 +309,18 @@ model AiUsageLog {
   @@index([userId, createdAt])
 }
 
+// ============= SITE SETTINGS =============
+
+model SiteSettings {
+  id              String   @id @default(cuid())
+  blogName        String   @default("WebArtisan Blog")
+  blogTitle       String   @default("Tools & Craft")
+  blogDescription String   @default("Thoughts on development, design, and the future of the web.")
+  updatedAt       DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
 // ============= ACTIVITY LOG =============
 
 model ActivityLog {

@@ -42,6 +42,12 @@ interface PaginatedPostsResponse {
   };
 }
 
+interface SiteSettings {
+  blogName: string;
+  blogTitle: string;
+  blogDescription: string;
+}
+
 interface PageProps {
   params: Promise<{ pageNumber: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -52,8 +58,23 @@ export default function PaginatedPage({ params }: PageProps) {
   const [data, setData] = useState<PaginatedPostsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFoundState, setNotFoundState] = useState(false);
+  const [settings, setSettings] = useState<SiteSettings>({
+    blogName: "WebArtisan Blog",
+    blogTitle: "Tools & Craft",
+    blogDescription: "Thoughts on development, design, and the future of the web."
+  });
 
   useEffect(() => {
+    // Fetch settings
+    fetch("/api/b/settings")
+      .then((res) => res.json())
+      .then((data: SiteSettings) => {
+        setSettings(data);
+      })
+      .catch(() => {
+        // Keep defaults on error
+      });
+
     params.then((resolvedParams) => {
       const pageNum = parseInt(resolvedParams.pageNumber);
       if (isNaN(pageNum) || pageNum < 1) {
@@ -66,7 +87,6 @@ export default function PaginatedPage({ params }: PageProps) {
       fetch(`/api/b/posts?page=${pageNum}`)
         .then((res) => res.json())
         .then((result: PaginatedPostsResponse | { error: string }) => {
-          // Handle error response from API
           if ("error" in result) {
             setData({ posts: [], pagination: { total: 0, page: pageNum, limit: 6, totalPages: 0, hasNext: false, hasPrev: false } });
           } else if (result.posts.length === 0 && pageNum > 1) {
@@ -99,14 +119,11 @@ export default function PaginatedPage({ params }: PageProps) {
         <header className="border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <Link href="/" className="text-xl font-semibold text-gray-900">
-              WebArtisan Blog
+              {settings.blogName}
             </Link>
             <nav className="flex gap-6">
               <Link href="/" className="text-gray-600 hover:text-gray-900 text-sm">
                 Home
-              </Link>
-              <Link href="/admin" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                Admin
               </Link>
             </nav>
           </div>
@@ -131,14 +148,11 @@ export default function PaginatedPage({ params }: PageProps) {
         <header className="border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <Link href="/" className="text-xl font-semibold text-gray-900">
-              WebArtisan Blog
+              {settings.blogName}
             </Link>
             <nav className="flex gap-6">
               <Link href="/" className="text-gray-600 hover:text-gray-900 text-sm">
                 Home
-              </Link>
-              <Link href="/admin" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                Admin
               </Link>
             </nav>
           </div>
@@ -160,14 +174,11 @@ export default function PaginatedPage({ params }: PageProps) {
       <header className="border-b border-gray-200 sticky top-0 bg-white/95 backdrop-blur-sm z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="text-xl font-semibold text-gray-900">
-            WebArtisan Blog
+            {settings.blogName}
           </Link>
           <nav className="flex gap-6">
             <Link href="/" className="text-gray-600 hover:text-gray-900 text-sm">
               Home
-            </Link>
-            <Link href="/admin" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-              Admin
             </Link>
           </nav>
         </div>
@@ -178,7 +189,7 @@ export default function PaginatedPage({ params }: PageProps) {
         {/* Hero Section */}
         <div className="mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
-            Tools & Craft
+            {settings.blogTitle}
           </h1>
           <p className="text-lg text-gray-600">
             Page {pageNumber} of {pagination.totalPages}

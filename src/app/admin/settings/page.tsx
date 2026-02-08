@@ -23,6 +23,12 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
+  // Blog settings fields
+  const [blogName, setBlogName] = useState("WebArtisan Blog")
+  const [blogTitle, setBlogTitle] = useState("Tools & Craft")
+  const [blogDescription, setBlogDescription] = useState("Thoughts on development, design, and the future of the web.")
+  const [loadingBlogSettings, setLoadingBlogSettings] = useState(false)
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
@@ -32,6 +38,16 @@ export default function SettingsPage() {
       setImage(session.user.image || "")
       setImagePreview(session.user.image || "")
     }
+
+    // Fetch blog settings
+    fetch("/api/admin/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.blogName) setBlogName(data.blogName)
+        if (data.blogTitle) setBlogTitle(data.blogTitle)
+        if (data.blogDescription) setBlogDescription(data.blogDescription)
+      })
+      .catch(console.error)
   }, [session, status, router])
 
   const showMessage = (type: "success" | "error", text: string) => {
@@ -85,7 +101,12 @@ export default function SettingsPage() {
     e.preventDefault()
     setLoading(true)
 
-    console.log('[SETTINGS] Submitting:', { name, email, imageLength: image?.length || 0 })
+    console.log('[SETTINGS] Submitting:', {
+      name,
+      email,
+      currentEmail: session?.user?.email,
+      imageLength: image?.length || 0
+    })
 
     try {
       const res = await fetch("/api/auth/user", {
@@ -99,19 +120,19 @@ export default function SettingsPage() {
 
       if (!res.ok) {
         showMessage("error", data.error || "Failed to update profile")
-      } else {
-        showMessage("success", "Profile updated successfully")
-
-        // Force session update by triggering a refresh
-        // This will call the session callback which fetches fresh data from DB
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
+        setLoading(false)
+        return
       }
+
+      showMessage("success", "Profile updated successfully!")
+
+      // Wait for database to settle, then reload
+      setTimeout(() => {
+        window.location.href = window.location.pathname + "?refreshed=" + Date.now()
+      }, 500)
     } catch (err) {
       console.error('[SETTINGS] Error:', err)
       showMessage("error", "Something went wrong")
-    } finally {
       setLoading(false)
     }
   }
@@ -155,6 +176,35 @@ export default function SettingsPage() {
       showMessage("error", "Something went wrong")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleBlogSettingsUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoadingBlogSettings(true)
+
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blogName,
+          blogTitle,
+          blogDescription
+        })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        showMessage("error", data.error || "Failed to update blog settings")
+      } else {
+        showMessage("success", "Blog settings updated successfully")
+      }
+    } catch {
+      showMessage("error", "Something went wrong")
+    } finally {
+      setLoadingBlogSettings(false)
     }
   }
 
@@ -286,7 +336,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Password Section */}
-      <div className="bg-background border rounded-lg p-6">
+      <div className="bg-background border rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Change Password</h2>
 
         <form onSubmit={handlePasswordChange} className="space-y-4">
@@ -329,6 +379,66 @@ export default function SettingsPage() {
             className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {loading ? "Updating..." : "Update Password"}
+          </button>
+        </form>
+      </div>
+
+      {/* Blog Settings Section */}
+      <div className="bg-background border rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">Blog Settings</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Customize the blog homepage header and branding
+        </p>
+
+        <form onSubmit={handleBlogSettingsUpdate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Blog Name</label>
+            <input
+              type="text"
+              value={blogName}
+              onChange={(e) => setBlogName(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+              placeholder="WebArtisan Blog"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              The brand name shown in the navigation bar
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Homepage Title</label>
+            <input
+              type="text"
+              value={blogTitle}
+              onChange={(e) => setBlogTitle(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+              placeholder="Tools & Craft"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              The main heading on the blog homepage
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Homepage Description</label>
+            <textarea
+              value={blogDescription}
+              onChange={(e) => setBlogDescription(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+              placeholder="Thoughts on development, design, and the future of the web."
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              The subtitle shown below the homepage title
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loadingBlogSettings}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {loadingBlogSettings ? "Saving..." : "Save Blog Settings"}
           </button>
         </form>
       </div>
