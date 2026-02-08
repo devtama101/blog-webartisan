@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -13,6 +13,15 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [csrfToken, setCsrfToken] = useState("")
+
+  // Fetch CSRF token on mount
+  useEffect(() => {
+    fetch("/api/auth/csrf")
+      .then((res) => res.json())
+      .then((data) => setCsrfToken(data.csrfToken))
+      .catch(() => {})
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,14 +32,17 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email,
         password,
+        csrfToken,
         redirect: false
       })
 
       if (result?.error) {
         setError("Invalid email or password")
-      } else {
+      } else if (result?.ok) {
         router.push("/admin")
         router.refresh()
+      } else {
+        setError("Login failed. Please try again.")
       }
     } catch {
       setError("Something went wrong. Please try again.")
