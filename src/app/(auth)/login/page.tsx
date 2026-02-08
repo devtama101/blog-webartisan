@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
@@ -20,35 +19,21 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      // Use the form action directly - NextAuth will handle CSRF
-      const formData = new FormData()
-      formData.append("email", email)
-      formData.append("password", password)
-      formData.append("csrfToken", "") // Will be filled by NextAuth
-
-      const response = await fetch("/api/auth/callback/credentials", {
+      // Call our custom login endpoint (no CSRF)
+      const response = await fetch("/api/login", {
         method: "POST",
-        body: formData,
-        redirect: "manual"
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
       })
 
-      if (response.ok) {
-        // Get the redirect URL from the response
-        const url = new URL(response.url)
-        if (url.searchParams.has("error") || url.searchParams.has("error_description")) {
-          const errorMsg = url.searchParams.get("error_description") || "Invalid email or password"
-          setError(errorMsg)
-        } else {
-          router.push("/admin")
-          router.refresh()
-        }
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Login failed")
       } else {
-        const text = await response.text()
-        if (text.includes("CSRF")) {
-          setError("Security error. Please refresh the page and try again.")
-        } else {
-          setError("Login failed. Please try again.")
-        }
+        // Success - redirect to admin
+        router.push("/admin")
+        router.refresh()
       }
     } catch (err) {
       console.error("Login error:", err)
