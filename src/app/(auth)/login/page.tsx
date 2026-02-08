@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -13,49 +13,42 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [csrfToken, setCsrfToken] = useState("")
-  const [csrfLoading, setCsrfLoading] = useState(true)
-
-  // Fetch CSRF token on mount
-  useEffect(() => {
-    fetch("/api/auth/csrf")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("CSRF token received:", data.csrfToken?.substring(0, 20) + "...")
-        setCsrfToken(data.csrfToken)
-      })
-      .catch((err) => {
-        console.error("Failed to fetch CSRF:", err)
-      })
-      .finally(() => {
-        setCsrfLoading(false)
-      })
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
-    console.log("Submitting login:", { email, hasPassword: !!password, csrfToken: csrfToken?.substring(0, 20) + "..." })
-
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        csrfToken,
-        redirect: false
+      // Use the form action directly - NextAuth will handle CSRF
+      const formData = new FormData()
+      formData.append("email", email)
+      formData.append("password", password)
+      formData.append("csrfToken", "") // Will be filled by NextAuth
+
+      const response = await fetch("/api/auth/callback/credentials", {
+        method: "POST",
+        body: formData,
+        redirect: "manual"
       })
 
-      console.log("SignIn result:", result)
-
-      if (result?.error) {
-        setError("Invalid email or password")
-      } else if (result?.ok) {
-        router.push("/admin")
-        router.refresh()
+      if (response.ok) {
+        // Get the redirect URL from the response
+        const url = new URL(response.url)
+        if (url.searchParams.has("error") || url.searchParams.has("error_description")) {
+          const errorMsg = url.searchParams.get("error_description") || "Invalid email or password"
+          setError(errorMsg)
+        } else {
+          router.push("/admin")
+          router.refresh()
+        }
       } else {
-        setError("Login failed. Please try again.")
+        const text = await response.text()
+        if (text.includes("CSRF")) {
+          setError("Security error. Please refresh the page and try again.")
+        } else {
+          setError("Login failed. Please try again.")
+        }
       }
     } catch (err) {
       console.error("Login error:", err)
@@ -126,10 +119,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading || csrfLoading}
+            disabled={loading}
             className="w-full bg-primary text-primary-foreground py-2 rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading || csrfLoading ? "Loading..." : "Sign In"}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
