@@ -13,7 +13,9 @@ export interface SessionUser {
 export async function getSession(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies()
-    const token = cookieStore.get("session-token")?.value
+    // Check NextAuth cookie first, fall back to legacy cookie
+    const token = cookieStore.get("next-auth.session-token")?.value ||
+                 cookieStore.get("session-token")?.value
 
     if (!token) {
       return null

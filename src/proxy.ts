@@ -20,7 +20,9 @@ export default async function proxy(request: NextRequest) {
   // Redirect to login if accessing admin routes without auth
   if (pathname.startsWith("/admin")) {
     const cookieStore = await cookies()
-    const token = cookieStore.get("session-token")?.value
+    // Check NextAuth cookie first, fall back to legacy cookie
+    const token = cookieStore.get("next-auth.session-token")?.value ||
+                 cookieStore.get("session-token")?.value
 
     if (!token) {
       return NextResponse.redirect(new URL("/login", request.url))

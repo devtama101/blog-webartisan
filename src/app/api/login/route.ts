@@ -43,9 +43,9 @@ export async function POST(req: Request) {
       .setExpirationTime("7d")
       .sign(new TextEncoder().encode(JWT_SECRET))
 
-    // Set the session cookie
+    // Set the session cookie with NextAuth-compatible name and JWT format
     const cookieStore = await cookies()
-    cookieStore.set("session-token", token, {
+    cookieStore.set("next-auth.session-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

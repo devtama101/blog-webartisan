@@ -15,7 +15,9 @@ async function verifyToken(token: string) {
 
 export async function GET() {
   const cookieStore = await cookies()
-  const token = cookieStore.get("session-token")?.value
+  // Check NextAuth cookie first, fall back to legacy cookie
+  const token = cookieStore.get("next-auth.session-token")?.value ||
+               cookieStore.get("session-token")?.value
 
   if (!token) {
     return NextResponse.json({ user: null })
