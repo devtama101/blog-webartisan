@@ -14,19 +14,30 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [csrfToken, setCsrfToken] = useState("")
+  const [csrfLoading, setCsrfLoading] = useState(true)
 
   // Fetch CSRF token on mount
   useEffect(() => {
     fetch("/api/auth/csrf")
       .then((res) => res.json())
-      .then((data) => setCsrfToken(data.csrfToken))
-      .catch(() => {})
+      .then((data) => {
+        console.log("CSRF token received:", data.csrfToken?.substring(0, 20) + "...")
+        setCsrfToken(data.csrfToken)
+      })
+      .catch((err) => {
+        console.error("Failed to fetch CSRF:", err)
+      })
+      .finally(() => {
+        setCsrfLoading(false)
+      })
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
+
+    console.log("Submitting login:", { email, hasPassword: !!password, csrfToken: csrfToken?.substring(0, 20) + "..." })
 
     try {
       const result = await signIn("credentials", {
@@ -36,6 +47,8 @@ export default function LoginPage() {
         redirect: false
       })
 
+      console.log("SignIn result:", result)
+
       if (result?.error) {
         setError("Invalid email or password")
       } else if (result?.ok) {
@@ -44,7 +57,8 @@ export default function LoginPage() {
       } else {
         setError("Login failed. Please try again.")
       }
-    } catch {
+    } catch (err) {
+      console.error("Login error:", err)
       setError("Something went wrong. Please try again.")
     } finally {
       setLoading(false)
@@ -112,10 +126,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || csrfLoading}
             className="w-full bg-primary text-primary-foreground py-2 rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading || csrfLoading ? "Loading..." : "Sign In"}
           </button>
         </form>
 
