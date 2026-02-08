@@ -1,23 +1,23 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/db"
 import bcrypt from "bcryptjs"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/session"
 
 // PUT - Update current user profile
 export async function PUT(req: Request) {
-  const session = await auth()
+  const session = await getSession()
 
-  if (!session?.user) {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const body = await req.json()
   const { name, email, currentPassword, newPassword, image } = body
 
-  console.log('[SETTINGS UPDATE] Request:', { name, email, hasImage: !!image })
+  console.log('[SETTINGS UPDATE] Request:', { name, email, hasImage: !!image, userId: session.userId })
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id }
+    where: { id: session.userId }
   })
 
   if (!user) {
@@ -74,7 +74,7 @@ export async function PUT(req: Request) {
   }
 
   const updatedUser = await prisma.user.update({
-    where: { id: session.user.id },
+    where: { id: session.userId },
     data: updateData,
     select: {
       id: true,

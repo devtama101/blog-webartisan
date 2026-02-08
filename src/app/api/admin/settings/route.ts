@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/db"
-import { auth } from "@/lib/auth"
+import { requireAdmin } from "@/lib/session"
 
 // GET /api/admin/settings - Get site settings
 export async function GET() {
   try {
-    const session = await auth()
+    const session = await requireAdmin()
 
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -34,9 +34,9 @@ export async function GET() {
 // PUT /api/admin/settings - Update site settings
 export async function PUT(req: Request) {
   try {
-    const session = await auth()
+    const session = await requireAdmin()
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (!session) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

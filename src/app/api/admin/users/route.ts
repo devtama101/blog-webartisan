@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/db"
 import bcrypt from "bcryptjs"
-import { auth } from "@/lib/auth"
+import { requireAdmin } from "@/lib/session"
 
 // GET - List all users (admin only)
 export async function GET() {
-  const session = await auth()
+  const session = await requireAdmin()
 
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -28,9 +28,9 @@ export async function GET() {
 
 // POST - Create new user (admin only)
 export async function POST(req: Request) {
-  const session = await auth()
+  const session = await requireAdmin()
 
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
